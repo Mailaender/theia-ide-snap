@@ -22,13 +22,21 @@ jobs:
        uses: actions/checkout@v4
 
      - name: Update manifest
+       id: manifest
        env:
          GH_TOKEN: ${{ github.token }}
        run: |
          yq eval -i '.version = "${{ steps.latest.outputs.version }}"' snap/snapcraft.yaml
+         git add snap/snapcraft.yaml
+         git diff-index --exit-code HEAD || echo "changes=true" >> $GITHUB_OUTPUT
+
+     - name: Submit pull request
+       if: steps.manifest.outputs.changes == 'true'
+       env:
+         GH_TOKEN: ${{ github.token }}
+       run: |
          git config --local user.email "actions@github.com"
          git config --local user.name "GitHub Actions"
-         git add snap/snapcraft.yaml
          git commit -m "Update to version ${{ steps.latest.outputs.version }}"
          git branch ${{ steps.latest.outputs.version }}
          git checkout ${{ steps.latest.outputs.version }}
